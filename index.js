@@ -60,7 +60,7 @@ class BaseSupplier {
     }
 
     //abstract method 
-    parse(data) {
+    parse() {
         throw new Error("Must implement parse() in subclass");
     }
 
@@ -308,10 +308,19 @@ const main = async () => {
   const suppliers = await Promise.all([fetchSuppliers()])
   const mergedHotel = (await Promise.all([merge(suppliers.flat())])).flat()
   const argv = process.argv
-  const hotel_ids = argv[2].split(',')
-  const destination_ids = argv[3].split(',')
-  if (hotel_ids.includes('none') || destination_ids.includes('none'))
+  try {
+    const hotel_ids = argv[2].split(',')
+    const destination_ids = argv[3].split(',')
+    if (hotel_ids.includes('none') || destination_ids.includes('none'))
+      console.log(JSON.stringify(mergedHotel, null, 2))
+    else {
+      const filteredHotels = mergedHotel.filter(hotel => hotel_ids.includes(hotel.id.toString()) && destination_ids.includes(hotel.destination_id.toString()))
+      console.log(JSON.stringify(filteredHotels, null, 2))
+    }
+  }
+  catch {
     console.log(JSON.stringify(mergedHotel, null, 2))
+  }
   
 }
 main();

@@ -136,7 +136,7 @@ class Patagonia extends BaseSupplier {
   constructor(){
     super();
   }
-
+  
   endpoint() {
     return 'https://5f2be0b4ffc88500167b85a0.mockapi.io/suppliers/patagonia'
   }
@@ -147,8 +147,7 @@ class Patagonia extends BaseSupplier {
       5432: "Singapore",
       1122: "Japan",
     };
-    console.log(data)
-    
+
     let mergedHotel = [];
 
     data.forEach(hotel => {
@@ -201,7 +200,8 @@ class PaperFlies extends BaseSupplier {
       5432: "Singapore",
       1122: "Japan",
     };
-    console.log(data)
+    // console.log(data)
+    
     let mergedHotel = [];
 
     data.forEach(hotel => {
@@ -233,7 +233,85 @@ const fetchSuppliers = async () => {
   let patagonia = new Patagonia();
   let paperflies = new PaperFlies();
   const suppliers = await Promise.all([ acme.parse(), patagonia.parse(), paperflies.parse() ]);
-  // console.log(suppliers.flat())
   return suppliers.flat()
 }
-fetchSuppliers()
+const merge = async (suppliers) => {
+  let sortedHotels = {}
+  //sort suppliers by id and destination_id and put them into sortedHotel object as key-value pair
+  suppliers.forEach(supplier => { 
+    let key = supplier.id + '-' + supplier.destination_id
+    // console.log(supplier)
+    if (!Object.keys(sortedHotels).includes(key)) {
+      sortedHotels = {
+        ...sortedHotels,
+        [key] : [supplier]
+      }
+    }
+    else {
+      sortedHotels = {
+        ...sortedHotels,
+        [key] : [...sortedHotels[key], supplier]
+      }
+    }
+  })
+
+  let mergedHotels = []
+  //sort hotels by id and destination_id
+ 
+  Object.keys(sortedHotels).forEach(key => {
+    let id = key.split('-')[0]
+    let destinationId = key.split('-')[1]
+    let mergedHotel = new Hotel(id, destinationId, null, {
+      lat : null,
+      lng : null,
+      address : null,
+      city : null,
+      country : null
+    }, '', {
+      general: [],
+      room: []
+    }, {
+      rooms: [],
+      site: [],
+      amenities: []
+    }, []);
+    //merge hotels have the same keys
+    sortedHotels[key].forEach(hotel => {
+      mergedHotel.name = !mergedHotel.name || hotel.name >= mergedHotel.name ? hotel.name : mergedHotel.name
+      mergedHotel.description = !mergedHotel.description || hotel.description?.length > mergedHotel.description?.length ? hotel.description : mergedHotel.description
+      mergedHotel.location = { 
+        lat : hotel.location?.lat ? hotel.location.lat : mergedHotel.location.lat,
+        lng : hotel.location?.lng ? hotel.location.lng : mergedHotel.location.lng,
+        address : hotel.location?.address ? hotel.location.address : mergedHotel.location.address,
+        city : hotel.location?.city ? hotel.location.city : mergedHotel.location.city,
+        country : hotel.location?.country ? hotel.location.country : mergedHotel.location.country
+      }
+      mergedHotel.amenities = {
+        general : hotel.amenities?.general ? [... new Set([...mergedHotel.amenities.general, ...hotel.amenities.general])] : [...mergedHotel.amenities.general],
+        room : hotel.amenities?.room ? [... new Set([...mergedHotel.amenities.room, ...hotel.amenities.room])] : [...mergedHotel.amenities.room]
+      }
+      mergedHotel.images = {
+        rooms : hotel.images?.rooms && hotel.images.rooms.length > 0 ? [... new Set([...mergedHotel.images.rooms,...hotel.images.rooms])] : [...mergedHotel.images.rooms],
+        site : hotel.images?.site && hotel.images.site.length > 0 ? [... new Set([...mergedHotel.images.site,...hotel.images.site])] : [...mergedHotel.images.site],
+        amenities : hotel.images?.amenities && hotel.images.room.length > 0 ? [... new Set([...mergedHotel.images.amenities,...hotel.images.amenities])] : [...mergedHotel.images.amenities]
+      }
+
+      mergedHotel.booking_conditions = hotel.booking_conditions ? [... new Set([...mergedHotel.booking_conditions,...hotel.booking_conditions])] : [...mergedHotel.booking_conditions]
+    })
+    mergedHotels.push(mergedHotel)
+  })
+
+  return mergedHotels;
+}
+
+const main = async () => { 
+  const suppliers = await Promise.all([fetchSuppliers()])
+  const mergedHotel = (await Promise.all([merge(suppliers.flat())])).flat()
+  const argv = process.argv
+  const hotel_ids = argv[2].split(',')
+  const destination_ids = argv[3].split(',')
+  if (hotel_ids.includes('none') || destination_ids.includes('none'))
+    console.log(JSON.stringify(mergedHotel, null, 2))
+  
+}
+main();

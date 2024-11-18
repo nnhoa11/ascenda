@@ -53,6 +53,10 @@ class BaseSupplier {
         'bathtub',
         'tub'
       ]
+      this.country = {
+        5432: "Singapore",
+        1122: "Japan",
+      };
     }
     //abstract method 
     endpoint() {
@@ -85,11 +89,6 @@ class Acme extends BaseSupplier {
 
   async parse() {
     const data = await this.fetch();
-    const country = {
-      5432: "Singapore",
-      1122: "Japan",
-    };
-
     let mergedHotel = [];
 
     data.forEach(hotel => {
@@ -102,7 +101,7 @@ class Acme extends BaseSupplier {
           lng : hotel.Longitude,
           address : hotel.Address.trim(),
           city : hotel.City,
-          country : country[hotel.DestinationId]
+          country : this.country[hotel.DestinationId]
         },
         hotel.Description.trim(),
         {
@@ -143,11 +142,6 @@ class Patagonia extends BaseSupplier {
 
   async parse() {
     const data = await this.fetch();
-    const country = {
-      5432: "Singapore",
-      1122: "Japan",
-    };
-
     let mergedHotel = [];
 
     data.forEach(hotel => {
@@ -160,13 +154,14 @@ class Patagonia extends BaseSupplier {
           lng : hotel.lng,
           address : hotel.address ? hotel.address.trim() : null,
           city : null,
-          country : country[hotel.destination]
+          country : this.country[parseInt(hotel.destination)]
         },
         hotel.info ? hotel.info.trim() : null,
         {
           general: [],
           room: []
-        }, [], []
+        }, 
+        hotel.images, []
       )
       let amenities = {
         general: [],
@@ -196,10 +191,7 @@ class PaperFlies extends BaseSupplier {
 
   async parse() {
     const data = await this.fetch();
-    const country = {
-      5432: "Singapore",
-      1122: "Japan",
-    };
+    
     // console.log(data)
     
     let mergedHotel = [];
@@ -214,7 +206,7 @@ class PaperFlies extends BaseSupplier {
           lng : null,
           address : hotel.location.address ? hotel.location.address.trim() : null,
           city : null,
-          country : country[hotel.destination_id]
+          country : this.country[parseInt(hotel.destination_id)]
         },
         hotel.details ? hotel.details.trim() : null,
         hotel.amenities, 
@@ -232,9 +224,14 @@ const fetchSuppliers = async () => {
   let acme = new Acme();
   let patagonia = new Patagonia();
   let paperflies = new PaperFlies();
-  const suppliers = await Promise.all([ acme.parse(), patagonia.parse(), paperflies.parse() ]);
+  const suppliers = await Promise.all([ 
+    acme.parse(), 
+    patagonia.parse(), 
+    paperflies.parse()
+   ]);
   return suppliers.flat()
 }
+
 const merge = async (suppliers) => {
   let sortedHotels = {}
   //sort suppliers by id and destination_id and put them into sortedHotel object as key-value pair
@@ -291,9 +288,9 @@ const merge = async (suppliers) => {
         room : hotel.amenities?.room ? [... new Set([...mergedHotel.amenities.room, ...hotel.amenities.room])] : [...mergedHotel.amenities.room]
       }
       mergedHotel.images = {
-        rooms : hotel.images?.rooms && hotel.images.rooms.length > 0 ? [... new Set([...mergedHotel.images.rooms,...hotel.images.rooms])] : [...mergedHotel.images.rooms],
-        site : hotel.images?.site && hotel.images.site.length > 0 ? [... new Set([...mergedHotel.images.site,...hotel.images.site])] : [...mergedHotel.images.site],
-        amenities : hotel.images?.amenities && hotel.images.room.length > 0 ? [... new Set([...mergedHotel.images.amenities,...hotel.images.amenities])] : [...mergedHotel.images.amenities]
+        rooms : hotel.images?.rooms ? [... new Set([...mergedHotel.images.rooms,...hotel.images.rooms])] : [...mergedHotel.images.rooms],
+        site : hotel.images?.site ? [... new Set([...mergedHotel.images.site,...hotel.images.site])] : [...mergedHotel.images.site],
+        amenities : hotel.images?.amenities ? [... new Set([...mergedHotel.images.amenities,...hotel.images.amenities])] : [...mergedHotel.images.amenities]
       }
 
       mergedHotel.booking_conditions = hotel.booking_conditions ? [... new Set([...mergedHotel.booking_conditions,...hotel.booking_conditions])] : [...mergedHotel.booking_conditions]
@@ -319,6 +316,7 @@ const main = async () => {
     }
   }
   catch {
+    //missing one of two arguments
     console.log(JSON.stringify(mergedHotel, null, 2))
   }
   

@@ -5,8 +5,8 @@ const { promises, resolve } = require('dns')
 des = [ 
         'https://5f2be0b4ffc88500167b85a0.mockapi.io/suppliers/acme', 
         'https://5f2be0b4ffc88500167b85a0.mockapi.io/suppliers/patagonia',           
+        'https://5f2be0b4ffc88500167b85a0.mockapi.io/suppliers/paperflies'
         ]
-// 'https://5f2be0b4ffc88500167b85a0.mockapi.io/suppliers/paperflies'
 
 acme = [
   'Id',         
@@ -60,60 +60,20 @@ const fetchAll = async () => {
     des.map(async (url) => {
       try {
         const res = await axios.get(url);
-        res.data.forEach(hotel => {
-          if (hotel.Facilities) {
-            hotel.Facilities.forEach(facility => {
-              const normalizedFacility = facility.toLowerCase().trim();
-              if (!amenitiy.includes(normalizedFacility)) {
-                amenitiy.push(normalizedFacility);
-              }
-            });
-          }
-          if (hotel.amenities) {
-            hotel.amenities.forEach(facility => {
-              const normalizedFacility = facility.toLowerCase().trim();
-              if (!amenitiy.includes(normalizedFacility)) {
-                amenitiy.push(normalizedFacility);
-              }
-            });
-          }
-        });
+        console.log(res.data)
+
       } catch (err) {
         console.log(err);
       }
+      console.log('\n')
     })
   );
   // console.log(amenitiy)
-  return amenitiy
+
 }
 
 
-const f = async () => {
-  let general = [];
-  let room = [];
-
-  await axios.get('https://5f2be0b4ffc88500167b85a0.mockapi.io/suppliers/paperflies')
-    .then(res => {
-      res.data.forEach(hotel => {
-        general = [...new Set([...general, ...hotel.amenities.general])];
-        room = [...new Set([...room, ...hotel.amenities.room])];
-      });
-    })
-    .catch(err => console.log(err));
-
-  return { general, room };
-};
-
-f().then(async res => {
-  let amenities = []
-  await fetchAll().then(async res => {
-
-    amenities = res
-  })
-  amenities = amenities.filter(amenity => !res.room.includes(amenity) && !res.general.includes(amenity));
-  
-
-});
+fetchAll();
 //from the out put
 // general: [
 //   'outdoor pool',
